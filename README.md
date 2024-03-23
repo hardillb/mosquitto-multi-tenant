@@ -27,11 +27,13 @@ password_file passwd
 Use `mosquitto_passwd` to create a `passwd` file with usernames of the format `user@groupname`
 and an `admin` user then run `./test.sh` to start the broker.
 
-Subscribe user from group `foo` with `mosquitto_sub -u user@foo -P password -v -t '#'`
-Subscribe user from group `bar` with `mosquitto_sub -u user@bar -P password -v -t '#'`
-Subscribe admin user with `mosquitto_sub -u admin -P password -v -t '#'`
+ - Subscribe user from group `foo` with `mosquitto_sub -u user@foo -P password -v -t '#'`
+ - Subscribe user from group `bar` with `mosquitto_sub -u user@bar -P password -v -t '#'`
+ - Subscribe admin user with `mosquitto_sub -u admin -P password -v -t '#'`
 
-Publish message for `foo` group with `mosquitto_pub -u user@foo -P password -t test -m message`
+Then
+
+ - Publish message for `foo` group with `mosquitto_pub -u user@foo -P password -t test -m message`
 
 ## Acknowledgement
 
