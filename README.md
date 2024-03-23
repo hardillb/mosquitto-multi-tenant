@@ -8,7 +8,7 @@ pattern/prefix.
 
 - Check out & build the mosquitto develop branch (or 2.1.0 once released)
 - Check out this project in an adjacent directory
-- run `make` in this directory
+- run `make` in this project
 
 
 ## Configure
