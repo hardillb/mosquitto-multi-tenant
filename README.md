@@ -35,6 +35,10 @@ Then
 
  - Publish message for `foo` group with `mosquitto_pub -u user@foo -P password -t test -m message`
 
+## Limitations
+
+ - Client IDs still need to be globally unique across the whole broker.
+
 ## Acknowledgement
 
 This code is based on the topic-jail plugin example included in the Mosquitto 2.1.0 release
