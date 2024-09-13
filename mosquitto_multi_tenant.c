@@ -73,6 +73,48 @@ static char* get_team( const char *str) {
 	}
 }
 
+static int connect_callback(int event, void *event_data, void *userdata)
+{
+	struct mosquitto_evt_message *ed = event_data;
+	const char *id, *username;
+	char *new_id;
+	size_t idlen, new_id_len;
+
+	UNUSED(event);
+	UNUSED(userdata);
+	username = mosquitto_client_username(ed->client);
+
+	if (!username) {
+		return MOSQ_ERR_SUCCESS;
+	}
+
+	id = mosquitto_client_id(ed->client);
+	idlen = strlen(id);
+
+	const char *team = get_team(username);
+	if(!team){
+		/* will only modify the topic of team clients */
+		return MOSQ_ERR_SUCCESS;
+	}
+
+	/* calculate new client id length */
+	new_id_len = strlen(team) + sizeof('@') + idlen + 1;
+
+	new_id = mosquitto_calloc(1, new_id_len);
+	if(new_id == NULL){
+		return MOSQ_ERR_NOMEM;
+	}
+
+	/* generate new client id with team name */
+	snprintf(new_id, new_id_len, "%s@%s", id, team);
+
+	mosquitto_free((void *)team);
+
+	mosquitto_set_clientid(ed->client, new_id);
+
+	return MOSQ_ERR_SUCCESS;
+}
+
 
 static int callback_message_in(int event, void *event_data, void *userdata)
 {
@@ -346,6 +388,8 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 	regcomp(&shared_sub_match, "^(\\$share/[^/]+)/(.+)$", REG_EXTENDED);
 
 	int rc;
+	rc = mosquitto_callback_register(mosq_pid, MOSQ_EVT_CONNECT, connect_callback, NULL, NULL);
+	if(rc) return rc;
 	rc = mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE_IN, callback_message_in, NULL, NULL);
 	if(rc) return rc;
 	rc = mosquitto_callback_register(mosq_pid, MOSQ_EVT_MESSAGE_OUT, callback_message_out, NULL, NULL);
