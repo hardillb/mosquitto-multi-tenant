@@ -37,7 +37,7 @@ Then
 
 ## Limitations
 
- - Client IDs still need to be globally unique across the whole broker.
+ - ~~Client IDs still need to be globally unique across the whole broker~~.
  - Shared Subscriptions not supported (yet)
 
 ## Acknowledgement
