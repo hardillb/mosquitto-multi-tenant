@@ -54,6 +54,7 @@ MOSQUITTO_PLUGIN_DECLARE_VERSION(5);
 static mosquitto_plugin_id_t *mosq_pid = NULL;
 
 static regex_t username_match;
+static regex_t shared_sub_match;
 
 static char* get_team( const char *str) {
 	regmatch_t pmatch[2];
@@ -215,8 +216,9 @@ static int callback_message_out(int event, void *event_data, void *userdata)
 static int callback_subscribe(int event, void *event_data, void *userdata)
 {
 	struct mosquitto_evt_subscribe *ed = event_data;
-	char *new_sub;
-	size_t new_sub_len;
+	char *new_sub, *share_group, *topic;
+	regmatch_t pmatch[3];
+	size_t new_sub_len, group_size, topic_size;
 
 	UNUSED(event);
 	UNUSED(userdata);
@@ -232,22 +234,49 @@ static int callback_subscribe(int event, void *event_data, void *userdata)
 		return MOSQ_ERR_SUCCESS;
 	}
 
-	/* put the team on front of the topic */
+	if (!strncmp(ed->data.topic_filter, "$share/", 7)) {
+		new_sub_len = strlen(team) + (sizeof('/') * 2) + strlen(ed->data.topic_filter) + 1;
 
-	/* calculate the length of the new payload */
-	new_sub_len = strlen(team) + sizeof('/') + strlen(ed->data.topic_filter) + 1;
+		new_sub = mosquitto_calloc(1, new_sub_len);
+		if(new_sub == NULL){
+			return MOSQ_ERR_NOMEM;
+		}
 
-	/* Allocate some memory - use
-	 * mosquitto_calloc/mosquitto_malloc/mosquitto_strdup when allocating, to
-	 * allow the broker to track memory usage */
-	new_sub = mosquitto_calloc(1, new_sub_len);
-	if(new_sub == NULL){
-		return MOSQ_ERR_NOMEM;
+		int rc = regexec(&shared_sub_match, ed->data.topic_filter, 3, pmatch, 0);
+		if (rc == 0) {
+			group_size = (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so);
+			topic_size = (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so);
+			share_group = mosquitto_malloc(group_size+1);
+			topic = mosquitto_malloc(topic_size+1);
+			strncpy(share_group, ed->data.topic_filter + pmatch[1].rm_so, group_size);
+			share_group[group_size] = 0;
+			strncpy(topic, ed->data.topic_filter + pmatch[2].rm_so, topic_size);
+			topic[topic_size+1] = 0;
+			snprintf(new_sub, new_sub_len, "%s/%s/%s", share_group, team, topic);
+			
+			mosquitto_free((void *)share_group);
+			mosquitto_free((void *)topic);
+		} else {
+			return MOSQ_ERR_NOMEM;
+		}
+		
+	} else {
+		/* put the team on front of the topic */
+
+		/* calculate the length of the new payload */
+		new_sub_len = strlen(team) + sizeof('/') + strlen(ed->data.topic_filter) + 1;
+
+		/* Allocate some memory - use
+		* mosquitto_calloc/mosquitto_malloc/mosquitto_strdup when allocating, to
+		* allow the broker to track memory usage */
+		new_sub = mosquitto_calloc(1, new_sub_len);
+		if(new_sub == NULL){
+			return MOSQ_ERR_NOMEM;
+		}
+
+		/* prepend the team to the subscription */
+		snprintf(new_sub, new_sub_len, "%s/%s", team, ed->data.topic_filter);
 	}
-
-	/* prepend the team to the subscription */
-	snprintf(new_sub, new_sub_len, "%s/%s", team, ed->data.topic_filter);
-
 	/* Assign the new topic to the event data structure. You
 	 * must *not* free the original topic, it will be handled by the
 	 * broker. */
@@ -261,8 +290,9 @@ static int callback_subscribe(int event, void *event_data, void *userdata)
 static int callback_unsubscribe(int event, void *event_data, void *userdata)
 {
 	struct mosquitto_evt_unsubscribe *ed = event_data;
-	char *new_sub;
-	size_t new_sub_len;
+	char *new_sub, *share_group, *topic;
+	regmatch_t pmatch[3];
+	size_t new_sub_len, group_size, topic_size;
 
 	UNUSED(event);
 	UNUSED(userdata);
@@ -279,22 +309,50 @@ static int callback_unsubscribe(int event, void *event_data, void *userdata)
 		return MOSQ_ERR_SUCCESS;
 	}
 
-	/* put the team on front of the topic */
+		if (!strncmp(ed->data.topic_filter, "$share/", 7)) {
+		new_sub_len = strlen(team) + (sizeof('/') * 2) + strlen(ed->data.topic_filter) + 1;
 
-	/* calculate the length of the new payload */
-	new_sub_len = strlen(team) + sizeof('/') + strlen(ed->data.topic_filter) + 1;
+		new_sub = mosquitto_calloc(1, new_sub_len);
+		if(new_sub == NULL){
+			return MOSQ_ERR_NOMEM;
+		}
 
-	/* Allocate some memory - use
-	 * mosquitto_calloc/mosquitto_malloc/mosquitto_strdup when allocating, to
-	 * allow the broker to track memory usage */
-	new_sub = mosquitto_calloc(1, new_sub_len);
-	if(new_sub == NULL){
-		return MOSQ_ERR_NOMEM;
+		int rc = regexec(&shared_sub_match, ed->data.topic_filter, 3, pmatch, 0);
+		if (rc == 0) {
+			group_size = (size_t)(pmatch[1].rm_eo - pmatch[1].rm_so);
+			topic_size = (size_t)(pmatch[2].rm_eo - pmatch[2].rm_so);
+			share_group = mosquitto_malloc(group_size+1);
+			topic = mosquitto_malloc(topic_size+1);
+			strncpy(share_group, ed->data.topic_filter + pmatch[1].rm_so, group_size);
+			share_group[group_size] = 0;
+			strncpy(topic, ed->data.topic_filter + pmatch[2].rm_so, topic_size);
+			topic[topic_size+1] = 0;
+			snprintf(new_sub, new_sub_len, "%s/%s/%s", share_group, team, topic);
+			
+			mosquitto_free((void *)share_group);
+			mosquitto_free((void *)topic);
+		} else {
+			return MOSQ_ERR_NOMEM;
+		}
+		
+	} else {
+
+		/* put the team on front of the topic */
+
+		/* calculate the length of the new payload */
+		new_sub_len = strlen(team) + sizeof('/') + strlen(ed->data.topic_filter) + 1;
+
+		/* Allocate some memory - use
+		* mosquitto_calloc/mosquitto_malloc/mosquitto_strdup when allocating, to
+		* allow the broker to track memory usage */
+		new_sub = mosquitto_calloc(1, new_sub_len);
+		if(new_sub == NULL){
+			return MOSQ_ERR_NOMEM;
+		}
+
+		/* prepend the team to the subscription */
+		snprintf(new_sub, new_sub_len, "%s/%s", team, ed->data.topic_filter);
 	}
-
-	/* prepend the team to the subscription */
-	snprintf(new_sub, new_sub_len, "%s/%s", team, ed->data.topic_filter);
-
 	/* Assign the new topic to the event data structure. You
 	 * must *not* free the original topic, it will be handled by the
 	 * broker. */
@@ -326,6 +384,8 @@ int mosquitto_plugin_init(mosquitto_plugin_id_t *identifier, void **user_data, s
 	if (!found) {
 		regcomp(&username_match, "^[a-z0-9]+@([a-z0-9]+)$", REG_EXTENDED);
 	}
+
+	regcomp(&shared_sub_match, "^(\\$share/[^/]+)/(.+)$", REG_EXTENDED);
 
 	int rc;
 	rc = mosquitto_callback_register(mosq_pid, MOSQ_EVT_CONNECT, connect_callback, NULL, NULL);
