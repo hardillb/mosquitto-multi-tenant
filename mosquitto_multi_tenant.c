@@ -45,7 +45,7 @@ Contributors:
 #include "mosquitto.h"
 
 #define PLUGIN_NAME "multi-tenant"
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1.0"
 
 #define UNUSED(A) (void)(A)
 
