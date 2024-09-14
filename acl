@@ -1,3 +1,10 @@
 user user@foo
 topic write test/#
 topic read foo/test/#
+
+user user@bar
+topic write test/#
+topic read bar/test/#
+
+user admin
+topic readwrite #
