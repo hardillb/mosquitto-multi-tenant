@@ -39,6 +39,7 @@ Then
 
  - ~~Client IDs still need to be globally unique across the whole broker~~.
  - ~~Shared Subscriptions not supported (yet)~~
+ - ACLs need work, write is to the "original" topic, but read needs to be to the prefixed topic
 
 ## Acknowledgement
 
