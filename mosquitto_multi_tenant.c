@@ -93,7 +93,7 @@ static int connect_callback(int event, void *event_data, void *userdata)
 
 	const char *team = get_team(username);
 	if(!team){
-		/* will only modify the topic of team clients */
+		/* will only modify the client id of team clients */
 		return MOSQ_ERR_SUCCESS;
 	}
 
